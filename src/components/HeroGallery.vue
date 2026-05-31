@@ -5,15 +5,15 @@
       <template v-for="(item, idx) in displayImages" :key="idx">
         <!-- Phone wallpaper pair: side by side -->
         <div v-if="item.type === 'pair'" class="hg-masonry-pair">
-          <div class="hg-masonry-item" @click="openLightbox(item.left)">
-            <img :src="item.left.src" :alt="item.left.name" loading="lazy" />
+          <div class="hg-masonry-item" @click="openLightbox({ ...item.left, src: item.left.webp || item.left.src })">
+            <img :src="item.left.thumb" :alt="item.left.name" loading="lazy" />
             <div class="hg-caption">
               <span class="hg-cap-cat">{{ item.left.category }}</span>
               <span class="hg-cap-name">{{ item.left.name }}</span>
             </div>
           </div>
-          <div class="hg-masonry-item" @click="openLightbox(item.right)">
-            <img :src="item.right.src" :alt="item.right.name" loading="lazy" />
+          <div class="hg-masonry-item" @click="openLightbox({ ...item.right, src: item.right.webp || item.right.src })">
+            <img :src="item.right.thumb" :alt="item.right.name" loading="lazy" />
             <div class="hg-caption">
               <span class="hg-cap-cat">{{ item.right.category }}</span>
               <span class="hg-cap-name">{{ item.right.name }}</span>
@@ -21,8 +21,8 @@
           </div>
         </div>
         <!-- Normal single item -->
-        <div v-else-if="item.type === 'single'" class="hg-masonry-item" @click="openLightbox(item.img)">
-          <img :src="item.img.src" :alt="item.img.name" loading="lazy" />
+        <div v-else-if="item.type === 'single'" class="hg-masonry-item" @click="openLightbox({ ...item.img, src: item.img.webp || item.img.src })">
+          <img :src="item.img.thumb" :alt="item.img.name" loading="lazy" />
           <div class="hg-caption">
             <span class="hg-cap-cat">{{ item.img.category || '图集' }}</span>
             <span class="hg-cap-name">{{ item.img.name || '未命名' }}</span>
@@ -133,16 +133,24 @@ function openLightbox(img) {
   lightboxImg.value = img
 }
 
+function webpUrl(src) {
+  return src.replace(/\.(png|jpe?g)$/i, '.webp')
+}
+function thumbUrl(src) {
+  return src.replace(/\.(png|jpe?g)$/i, '-thumb.webp')
+}
+
 async function loadImages() {
   try {
     const res = await fetch(import.meta.env.BASE_URL + 'gallery/manifest.json')
     if (res.ok) {
       const data = await res.json()
-      // Filter out "爱国" from categories
       categories.value = (data.categories || []).filter(c => c !== '爱国')
       images.value = (data.images || []).map(img => ({
         ...img,
         src: import.meta.env.BASE_URL + 'gallery/' + img.src,
+        webp: import.meta.env.BASE_URL + 'gallery/' + webpUrl(img.src),
+        thumb: import.meta.env.BASE_URL + 'gallery/' + thumbUrl(img.src),
       }))
     }
   } catch (e) {

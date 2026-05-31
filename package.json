@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "node scripts/optimize-images.js && vite build",
+    "preview": "vite preview",
+    "optimize": "node scripts/optimize-images.js"
   },
   "dependencies": {
     "typeit": "^8.8.7",
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.6",
+    "sharp": "^0.34.5",
     "vite": "^8.0.12"
   }
 }

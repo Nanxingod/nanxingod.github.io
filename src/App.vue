@@ -57,8 +57,8 @@
           <div class="h-haizhe-col">
             <div class="hh-card">
               <div class="hh-images">
-                <img src="/images/haizhe-home.png" alt="海蜇首页" class="hh-screenshot" />
-                <img src="/images/haizhe-lyrics.png" alt="桌面歌词" class="hh-screenshot" />
+                <img src="/images/haizhe-home.webp" alt="海蜇首页" class="hh-screenshot" />
+                <img src="/images/haizhe-lyrics.webp" alt="桌面歌词" class="hh-screenshot" />
               </div>
               <div class="hh-info">
                 <div class="hh-title-row">
