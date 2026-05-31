@@ -13,6 +13,7 @@
 import { readFile, writeFile, unlink, mkdir, readdir } from 'fs/promises'
 import { join, extname } from 'path'
 import { existsSync } from 'fs'
+import sharp from 'sharp'
 
 const GALLERY_DIR = 'public/gallery'
 const MANIFEST_FILE = 'manifest.json'
@@ -113,6 +114,14 @@ export default function galleryPlugin() {
             const destPath = join(getGalleryDir(root), savedName)
 
             await writeFile(destPath, fileData)
+
+            // Auto-generate WebP variants
+            const webpPath = destPath.replace(/\.(png|jpe?g)$/i, '.webp')
+            const thumbPath = destPath.replace(/\.(png|jpe?g)$/i, '-thumb.webp')
+            try {
+              await sharp(destPath).resize(1920, undefined, { withoutEnlargement: true }).webp({ quality: 85 }).toFile(webpPath)
+              await sharp(destPath).resize(500, undefined, { withoutEnlargement: true }).webp({ quality: 75 }).toFile(thumbPath)
+            } catch (e) { console.error('WebP conversion failed:', e.message) }
 
             const manifest = await loadManifest(root)
             if (!manifest.categories.includes(category)) {
