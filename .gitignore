@@ -28,4 +28,3 @@ yarn-error.log*
 .env
 .edgeone/*
 .tef_dist/*
-  public/music/
