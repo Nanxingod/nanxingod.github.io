@@ -2,7 +2,7 @@
   <div class="mini-player glass-card">
     <div class="mp-main-row">
       <div class="mp-art" :class="{ spinning: playing }">
-        <img src="/images/avatar-placeholder.png" alt="cover" class="mp-art-img" />
+        <img src="/images/avatar-placeholder.webp" alt="cover" class="mp-art-img" />
       </div>
       <div class="mp-info">
         <div class="mp-title">{{ currentTrack.title }}</div>

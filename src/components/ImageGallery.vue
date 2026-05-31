@@ -68,7 +68,7 @@
         @dragend="onDragEnd"
         :class="{ dragging: dragInfo?.index === i && dragInfo?.type === 'image' }">
         <div class="gallery-card-img" @click="openLightbox(img)">
-          <img :src="img.src" :alt="img.name" loading="lazy" />
+          <img :src="img.webp || img.src" :alt="img.name" loading="lazy" />
           <span v-if="isOwner" class="img-drag-handle" title="拖拽排序" @click.stop>⋮⋮</span>
           <div class="gallery-card-overlay">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -141,7 +141,7 @@
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <div class="lightbox-content" @click.stop>
-          <img :src="lightboxImage.src" :alt="lightboxImage.name" />
+          <img :src="lightboxImage.webp || lightboxImage.src" :alt="lightboxImage.name" />
           <div class="lightbox-info">
             <h3>{{ lightboxImage.name || '未命名' }}</h3>
             <p v-if="lightboxImage.description">{{ lightboxImage.description }}</p>
@@ -192,6 +192,10 @@ function countByCategory(cat) {
 // --- API helpers ---
 const API = import.meta.env.BASE_URL + 'api/gallery'
 
+function toWebp(src) {
+  return src.replace(/\.(png|jpe?g)$/i, '.webp')
+}
+
 async function loadManifest() {
   // 优先尝试 API（仅 localhost dev server 可用）
   try {
@@ -202,6 +206,7 @@ async function loadManifest() {
     images.value = (data.images || []).map(img => ({
       ...img,
       src: import.meta.env.BASE_URL + 'gallery/' + img.src,
+      webp: import.meta.env.BASE_URL + 'gallery/' + toWebp(img.src),
     }))
     if (categories.value.length > 0 && !categories.value.includes(activeCategory.value)) {
       activeCategory.value = categories.value[0]
@@ -219,6 +224,7 @@ async function loadManifest() {
       images.value = (data.images || []).map(img => ({
         ...img,
         src: import.meta.env.BASE_URL + 'gallery/' + img.src,
+        webp: import.meta.env.BASE_URL + 'gallery/' + toWebp(img.src),
       }))
       if (categories.value.length > 0 && !categories.value.includes(activeCategory.value)) {
         activeCategory.value = categories.value[0]
