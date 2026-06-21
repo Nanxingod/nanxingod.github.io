@@ -89,10 +89,10 @@ const muted = ref(false)
 
 const playlist = [
   { title: '清晨微风', artist: '轻音乐', src: '/music/track1.mp3' },
-  { title: '午后暖阳', artist: '治愈系', src: '/music/track2.mp3' },
+  { title: '晨光微醺', artist: '轻电子', src: '/music/track13.mp3' },
   { title: '夜空星辰', artist: '氛围电子', src: '/music/track3.mp3' },
   { title: '夏夜虫鸣', artist: '自然白噪音', src: '/music/track5.mp3' },
-  { title: '雨巷漫步', artist: '爵士钢琴', src: '/music/track6.mp3' },
+  { title: '月光独白', artist: '爵士钢琴', src: '/music/track12.mp3' },
   { title: '海浪轻拍', artist: '环境音', src: '/music/track7.mp3' },
   { title: '咖啡时光', artist: 'Bossa Nova', src: '/music/track8.mp3' },
   { title: '远山淡影', artist: '后摇', src: '/music/track9.mp3' },
