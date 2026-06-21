@@ -1,5 +1,5 @@
 <template>
-  <div class="gallery-section">
+  <div ref="galleryTopRef" class="gallery-section">
     <!-- 访客只读提示 -->
     <div class="gallery-mode-bar readonly-bar" v-if="!isOwner">
       <span class="mode-badge">🔒 只读模式</span>
@@ -180,6 +180,7 @@ const filteredImages = computed(() => images.value.filter(img => img.category ==
 const ITEMS_PER_PAGE = 12
 const currentPage = ref(1)
 const paginationRef = ref(null)
+const galleryTopRef = ref(null)
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredImages.value.length / ITEMS_PER_PAGE)))
 const paginatedImages = computed(() => {
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
@@ -189,7 +190,7 @@ const paginatedImages = computed(() => {
 function goToPage(n) {
   currentPage.value = n
   nextTick(() => {
-    paginationRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    galleryTopRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
 }
 
