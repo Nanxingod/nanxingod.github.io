@@ -91,13 +91,13 @@ const playlist = [
   { title: '清晨微风', artist: '轻音乐', src: '/music/track1.mp3' },
   { title: '午后暖阳', artist: '治愈系', src: '/music/track2.mp3' },
   { title: '夜空星辰', artist: '氛围电子', src: '/music/track3.mp3' },
-  { title: '樱花飘落', artist: '和风', src: '/music/track4.mp3' },
   { title: '夏夜虫鸣', artist: '自然白噪音', src: '/music/track5.mp3' },
   { title: '雨巷漫步', artist: '爵士钢琴', src: '/music/track6.mp3' },
   { title: '海浪轻拍', artist: '环境音', src: '/music/track7.mp3' },
   { title: '咖啡时光', artist: 'Bossa Nova', src: '/music/track8.mp3' },
   { title: '远山淡影', artist: '后摇', src: '/music/track9.mp3' },
   { title: '城市霓虹', artist: 'Lo-Fi', src: '/music/track10.mp3' },
+  { title: '星空漫步', artist: '氛围电子', src: '/music/track11.mp3' },
 ]
 
 const currentTrack = computed(() => playlist[currentIndex.value] || playlist[0])
