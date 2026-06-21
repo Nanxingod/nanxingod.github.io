@@ -111,18 +111,18 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="totalPages > 1" class="gallery-pagination">
-      <button :disabled="currentPage === 1" @click="currentPage = 1" title="首页">
+    <div v-if="totalPages > 1" ref="paginationRef" class="gallery-pagination">
+      <button :disabled="currentPage === 1" @click="goToPage(1)" title="首页">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
       </button>
-      <button :disabled="currentPage === 1" @click="currentPage--" title="上一页">
+      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)" title="上一页">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-      <button :disabled="currentPage === totalPages" @click="currentPage++" title="下一页">
+      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)" title="下一页">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button :disabled="currentPage === totalPages" @click="currentPage = totalPages" title="末页">
+      <button :disabled="currentPage === totalPages" @click="goToPage(totalPages)" title="末页">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
       </button>
     </div>
@@ -179,11 +179,19 @@ const filteredImages = computed(() => images.value.filter(img => img.category ==
 
 const ITEMS_PER_PAGE = 12
 const currentPage = ref(1)
+const paginationRef = ref(null)
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredImages.value.length / ITEMS_PER_PAGE)))
 const paginatedImages = computed(() => {
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
   return filteredImages.value.slice(start, start + ITEMS_PER_PAGE)
 })
+
+function goToPage(n) {
+  currentPage.value = n
+  nextTick(() => {
+    paginationRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
 
 function countByCategory(cat) {
   return images.value.filter(img => img.category === cat).length
