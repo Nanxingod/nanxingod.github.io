@@ -10,6 +10,12 @@ dist/
 *.swp
 *.swo
 
+# AI agent (dev only)
+.codebuddy/
+.workbuddy/
+.claude/
+.trae/
+
 # OS
 .DS_Store
 Thumbs.db
