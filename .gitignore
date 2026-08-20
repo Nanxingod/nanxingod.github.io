@@ -14,7 +14,31 @@ dist/
 .codebuddy/
 .workbuddy/
 .claude/
+.claude.json
 .trae/
+.codex/
+.opencode/
+opencode.json
+.gemini/
+.goose/
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.copilot/
+.continue/
+.aider*
+.qwen/
+.droid/
+.amp/
+.roo/
+.sgpt/
+.clinerules
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+QWEN.md
 
 # OS
 .DS_Store
