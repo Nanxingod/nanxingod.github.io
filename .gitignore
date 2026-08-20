@@ -29,3 +29,8 @@ yarn-error.log*
 .env
 .edgeone/*
 .tef_dist/*
+
+# 本地缓存与临时产物
+.cache/
+tmp/
+*.local
