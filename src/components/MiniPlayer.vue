@@ -70,6 +70,7 @@
       @loadedmetadata="onLoaded"
       @ended="nextTrack"
       @error="onError"
+      @canplay="onCanPlay"
       preload="metadata"
     ></audio>
   </div>
@@ -80,6 +81,7 @@ import { ref, reactive, computed } from 'vue'
 
 const audioRef = ref(null)
 const playing = ref(false)
+const shouldPlay = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const currentIndex = ref(0)
@@ -112,10 +114,14 @@ function togglePlay() {
   if (!audio || !audio.src || loadError.value) return
   if (playing.value) {
     audio.pause()
+    playing.value = false
   } else {
-    audio.play().catch(() => {})
+    shouldPlay.value = true
+    audio.play().then(() => { playing.value = true }).catch(() => {
+      playing.value = false
+      shouldPlay.value = false
+    })
   }
-  playing.value = !playing.value
 }
 
 function playTrack(index) {
@@ -124,14 +130,25 @@ function playTrack(index) {
   currentTime.value = 0
   duration.value = 0
   loadError.value = false
-  // auto-play after src change
+  shouldPlay.value = true
+  // let @canplay trigger the actual play() call
   setTimeout(() => {
     const audio = audioRef.value
-    if (audio) {
-      audio.load()
-      audio.play().then(() => { playing.value = true }).catch(() => {})
+    if (audio && audio.readyState >= 2) {
+      // Already canplay — play immediately
+      audio.play().then(() => { playing.value = true }).catch(() => { shouldPlay.value = false })
     }
   }, 100)
+}
+
+function onCanPlay() {
+  if (shouldPlay.value) {
+    const audio = audioRef.value
+    if (audio) {
+      shouldPlay.value = false
+      audio.play().then(() => { playing.value = true }).catch(() => {})
+    }
+  }
 }
 
 function prevTrack() {
