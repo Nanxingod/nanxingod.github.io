@@ -212,26 +212,72 @@ img {
   overflow: hidden;
 }
 
-/* === Top bar: MiniPlayer : Title : Search : Clock === */
+/* === Top bar: 四模块两端对齐、等间距；中间列定宽，打字机不挤压邻居 === */
 .h-top-bar {
   display: flex;
   align-items: center;
-  gap: 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  width: 100%;
+  padding: 0 32px;
+  margin-bottom: 36px;
   position: relative;
   z-index: 5;
-  margin-bottom: 36px;
 }
 .h-cell { min-width: 0; }
-.h-mp { flex: 1.2; display: flex; justify-content: center; }
-.h-mid { flex: 1.8; display: flex; justify-content: center; }
-.h-sch { flex: 2; display: flex; justify-content: center; align-items: center; }
-.h-clk { flex: 1; display: flex; justify-content: center; }
-.h-title-inline { text-align: center; max-width: 340px; }
+.h-mp { flex-shrink: 0; }
+.h-mid { flex-shrink: 0; }
+.h-sch { flex-shrink: 0; display: flex; align-items: center; width: 320px; transform: translateY(-14px); }
+.h-clk { flex-shrink: 0; }
+.h-title-inline { text-align: center; width: 300px; }
+.h-sch .sb-wrap { width: 100%; max-width: none; margin-top: 0 !important; }
+/* 搜索框适当调大并整体上抬：像素小猫不占布局高度，目测偏低的输入框对齐回其它模块的视觉中线 */
+.h-sch .sb-box {
+  padding: 12px 16px !important;
+  border-radius: 14px !important;
+}
+
+/* 打字机区域预留固定高度，打字/换行时布局不跳动 */
+.h-typewriter { display: flex; justify-content: center; align-items: center; min-height: 42px; }
+
+/* 屏宽不足以两端铺满时，退回居中紧凑排布 */
+@media (max-width: 1279px) {
+  .h-top-bar { justify-content: center; }
+}
+
+/* 首屏交互艺术：巨大像素蒲公英，藏在顶栏后方居中 */
+.h-hero-art {
+  position: absolute;
+  left: 50%;
+  top: -60px;
+  transform: translateX(-50%);
+  z-index: 1;
+  opacity: 0.42;
+  pointer-events: none;
+  display: none;
+  animation: heroArtFloat 9s ease-in-out infinite;
+}
+
+@keyframes heroArtFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-14px); }
+}
+
+@media (min-width: 1280px) {
+  .h-hero-art { display: block; }
+}
+
+@media (max-width: 768px) {
+  .h-top-bar {
+    gap: 12px;
+  }
+}
 
 /* Tiny MiniPlayer — inline, fills its cell */
 .h-player-tiny {
   width: 100% !important;
-  max-width: 220px !important;
+  max-width: 300px !important;
   padding: 8px 10px !important;
   gap: 4px !important;
   border-radius: 10px !important;
@@ -347,7 +393,7 @@ img {
 
 .hh-screenshot {
   width: 100%;
-  aspect-ratio: 16/11;
+  aspect-ratio: 16/10;
   object-fit: cover;
   border-radius: 8px;
   display: block;
@@ -657,6 +703,163 @@ img {
 }
 
 /* ============================================
+   Profile Card — 个人信息收尾档案卡
+   ============================================ */
+@property --pa-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.section-about {
+  text-align: center;
+}
+
+.profile-card {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 44px 36px 40px;
+  text-align: center;
+  position: relative;
+}
+
+/* 顶部渐变高光 */
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.6), rgba(167, 139, 250, 0.6), transparent);
+}
+
+/* 流光头像环 */
+.profile-avatar {
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from var(--pa-angle), #6366f1, #a78bfa, #22d3ee, #f0abfc, #6366f1);
+  animation: paSpin 6s linear infinite;
+  box-shadow: 0 0 32px rgba(99, 102, 241, 0.35);
+}
+
+@keyframes paSpin {
+  to { --pa-angle: 360deg; }
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg);
+}
+
+.profile-name {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+
+.pn-en { color: var(--text); }
+.pn-slash { color: var(--text-muted); margin: 0 6px; font-weight: 200; }
+.pn-cn {
+  background: linear-gradient(135deg, var(--purple) 20%, var(--accent) 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.12), inset 0 0 12px rgba(99, 102, 241, 0.06);
+  margin-bottom: 20px;
+}
+
+.profile-bio {
+  max-width: 580px;
+  margin: 0 auto;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.9;
+}
+
+.profile-tech {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.07);
+}
+
+.profile-tech .tech-group {
+  justify-content: center;
+}
+
+.profile-links {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+/* 两侧像素粒子装饰（仅宽屏显示，避免遮挡卡片） */
+.section-about {
+  position: relative;
+}
+
+.about-deco {
+  position: absolute;
+  top: calc(50% + 46px);
+  transform: translateY(-50%);
+  display: none;
+  z-index: 0;
+}
+
+.about-deco-left {
+  left: calc(50% - 734px);
+}
+
+.about-deco-right {
+  right: calc(50% - 734px);
+}
+
+@media (min-width: 1500px) {
+  .about-deco {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-card {
+    padding: 32px 20px 28px;
+  }
+  .profile-avatar {
+    width: 84px;
+    height: 84px;
+  }
+  .profile-name {
+    font-size: 20px;
+  }
+}
+
+/* ============================================
    Projects Section
    ============================================ */
 .project-featured {
@@ -946,6 +1149,56 @@ img {
   font-size: 11px !important;
 }
 
+/* 更多项目 — 省略号卡片 */
+.more-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  border-color: rgba(129, 140, 248, 0.22);
+  min-height: 100%;
+}
+
+.more-card:hover {
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.12);
+  transform: translateY(-3px);
+}
+
+.more-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.more-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  opacity: 0.75;
+  animation: moreDotBounce 1.4s ease-in-out infinite;
+}
+
+.more-dots span:nth-child(2) { animation-delay: 0.18s; }
+.more-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes moreDotBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-7px); opacity: 1; }
+}
+
+.more-card h4 {
+  color: var(--text);
+}
+
+.more-card p {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* ============================================
    Tech Stack
    ============================================ */
@@ -1027,7 +1280,7 @@ img {
    Footer
    ============================================ */
 .footer {
-  border-top: 1px solid var(--border);
+  border-top: none;
   padding: 36px 28px 24px;
 }
 

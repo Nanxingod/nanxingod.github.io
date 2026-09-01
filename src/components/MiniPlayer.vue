@@ -8,6 +8,10 @@
         <div class="mp-title">{{ currentTrack.title }}</div>
         <div class="mp-artist">{{ currentTrack.artist }}</div>
       </div>
+      <!-- 播放中的微型频谱条 -->
+      <div class="mp-viz" :class="{ on: playing }" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i>
+      </div>
       <div class="mp-controls">
         <button class="mp-btn" @click="prevTrack" title="上一首">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
@@ -252,18 +256,41 @@ function setVolume(e) {
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(167,139,250,0.2));
-  border: 1px solid rgba(255,255,255,0.08);
+  /* 黑胶唱片：暗底 + 一圈圈刻纹 */
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0.055) 0 1px,
+    rgba(18,18,32,0.95) 1px 3px
+  );
+  border: 1px solid rgba(255,255,255,0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
+/* 中心标签：封面缩到唱片中芯，旋转时像真的唱片 */
 .mp-art-img {
-  width: 100%;
-  height: 100%;
+  width: 54%;
+  height: 54%;
   object-fit: cover;
   border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+/* 唱片中轴孔 */
+.mp-art::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(10,10,18,0.95);
+  border: 1px solid rgba(255,255,255,0.2);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .mp-art.spinning .mp-art-img {
@@ -355,6 +382,43 @@ function setVolume(e) {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* 频谱条：静止时缩成小点，播放时跳动 */
+.mp-viz {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.mp-viz i {
+  width: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--purple), var(--accent));
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+
+.mp-viz.on i {
+  opacity: 1;
+  animation: vizBounce 0.9s ease-in-out infinite;
+}
+
+.mp-viz.on i:nth-child(1) { animation-delay: 0s; }
+.mp-viz.on i:nth-child(2) { animation-delay: 0.18s; }
+.mp-viz.on i:nth-child(3) { animation-delay: 0.36s; }
+.mp-viz.on i:nth-child(4) { animation-delay: 0.1s; }
+.mp-viz.on i:nth-child(5) { animation-delay: 0.28s; }
+
+@keyframes vizBounce {
+  0%, 100% { height: 4px; }
+  35% { height: 17px; }
+  60% { height: 8px; }
+  80% { height: 13px; }
 }
 
 .mp-volume {
