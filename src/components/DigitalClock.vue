@@ -1,14 +1,28 @@
 <template>
   <div class="clock-panel" ref="panelRef" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
     <div class="clock-glow" :style="glowStyle"></div>
+
+    <!-- 数字管风格：每位数字一个玻璃格 -->
     <div class="clock-time">
-      <span class="time-digit">{{ hours }}</span>
-      <span class="time-colon">:</span>
-      <span class="time-digit">{{ minutes }}</span>
-      <span class="time-colon">:</span>
-      <span class="time-digit">{{ seconds }}</span>
-      <span class="time-period">{{ period }}</span>
+      <div class="clk-group">
+        <span class="clk-cell" v-for="(d, i) in hourDigits" :key="'h' + i">{{ d }}</span>
+      </div>
+      <span class="clk-colon">:</span>
+      <div class="clk-group">
+        <span class="clk-cell" v-for="(d, i) in minDigits" :key="'m' + i">{{ d }}</span>
+      </div>
+      <span class="clk-colon">:</span>
+      <div class="clk-group">
+        <span class="clk-cell clk-cell-sec" v-for="(d, i) in secDigits" :key="'s' + i">{{ d }}</span>
+      </div>
+      <span class="clk-period">{{ period }}</span>
     </div>
+
+    <!-- 秒针进度线：每分钟走满一格 -->
+    <div class="clk-sec-line">
+      <div class="clk-sec-fill" :style="{ width: secPct + '%' }"></div>
+    </div>
+
     <div class="clock-date-row">
       <span class="clock-weekday">{{ weekday }}</span>
       <span class="clock-dot">·</span>
@@ -18,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 
 const hours = ref('00')
 const minutes = ref('00')
@@ -31,6 +45,11 @@ const panelRef = ref(null)
 const glowStyle = reactive({ opacity: 0, left: '50%', top: '50%' })
 
 let timer = null
+
+const hourDigits = computed(() => hours.value.split(''))
+const minDigits = computed(() => minutes.value.split(''))
+const secDigits = computed(() => seconds.value.split(''))
+const secPct = computed(() => (parseInt(seconds.value, 10) / 60) * 100)
 
 function pad(n) {
   return n < 10 ? '0' + n : '' + n
@@ -78,7 +97,7 @@ onUnmounted(() => {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 18px;
+  padding: 12px 18px 10px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -99,7 +118,7 @@ onUnmounted(() => {
   box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35), 0 0 50px rgba(99, 102, 241, 0.1);
 }
 
-/* Magnetic glow dot that follows cursor */
+/* 磁吸光斑 */
 .clock-glow {
   position: absolute;
   width: 80px;
@@ -113,66 +132,99 @@ onUnmounted(() => {
 }
 
 .clock-time,
-.clock-date-row {
+.clock-date-row,
+.clk-sec-line {
   position: relative;
   z-index: 1;
 }
 
 .clock-time {
   display: flex;
-  align-items: baseline;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
 }
 
-.time-digit {
-  font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
-  font-size: 26px;
-  font-weight: 300;
-  letter-spacing: 1px;
-  background: linear-gradient(180deg, #f0f0ff 0%, #c7d2fe 50%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(129, 140, 248, 0.25));
-  line-height: 1;
-  min-width: 0.9em;
-  text-align: center;
-  transition: filter 0.4s ease;
+.clk-group {
+  display: flex;
+  gap: 3px;
 }
 
-.clock-panel:hover .time-digit {
-  filter: drop-shadow(0 0 18px rgba(129, 140, 248, 0.4));
-}
-
-.time-colon {
-  font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
+/* 数字管玻璃格 */
+.clk-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 36px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 8px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
   font-size: 20px;
-  font-weight: 200;
-  color: rgba(199, 210, 254, 0.45);
-  animation: colonPulse 2s ease-in-out infinite;
-  line-height: 1;
-  padding: 0 1px;
+  font-weight: 600;
+  color: #e0e7ff;
+  text-shadow: 0 0 10px rgba(129, 140, 248, 0.6), 0 0 22px rgba(129, 140, 248, 0.3);
+  transition: text-shadow 0.4s ease, border-color 0.4s ease;
 }
 
-.time-period {
-  font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
-  font-size: 10px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-left: 6px;
+.clock-panel:hover .clk-cell {
+  text-shadow: 0 0 14px rgba(165, 180, 252, 0.9), 0 0 30px rgba(129, 140, 248, 0.5);
+  border-color: rgba(129, 140, 248, 0.25);
+}
+
+.clk-cell-sec {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.16), rgba(167, 139, 250, 0.04));
+  color: #dcd3ff;
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.65), 0 0 22px rgba(167, 139, 250, 0.3);
+}
+
+.clk-colon {
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 17px;
+  font-weight: 300;
+  color: rgba(199, 210, 254, 0.5);
+  animation: colonPulse 2s ease-in-out infinite;
+  padding: 0 1px;
+  transform: translateY(-2px);
+}
+
+.clk-period {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(199, 210, 254, 0.75);
+  letter-spacing: 1.5px;
+  margin-left: 4px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.2);
   align-self: flex-end;
-  padding-bottom: 2px;
+  margin-bottom: 3px;
+}
+
+/* 秒针进度线 */
+.clk-sec-line {
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 8px 0 7px;
+  overflow: hidden;
+}
+
+.clk-sec-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 1px;
+  transition: width 1s linear;
+  box-shadow: 0 0 6px rgba(129, 140, 248, 0.6);
 }
 
 .clock-date-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
   width: 100%;
   justify-content: center;
 }
@@ -203,17 +255,20 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .clock-panel {
-    padding: 8px 14px;
+    padding: 9px 12px 8px;
     border-radius: 12px;
   }
-  .time-digit {
-    font-size: 18px;
-  }
-  .time-colon {
+  .clk-cell {
+    width: 19px;
+    height: 27px;
     font-size: 15px;
   }
-  .time-period {
-    font-size: 9px;
+  .clk-colon {
+    font-size: 13px;
+  }
+  .clk-period {
+    font-size: 8px;
+    padding: 2px 4px;
   }
   .clock-weekday,
   .clock-date {
