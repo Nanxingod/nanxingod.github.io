@@ -60,7 +60,23 @@
           <div class="h-cell h-clk"><DigitalClock /></div>
         </div>
 
-        <!-- 下半区：海蜇2 : 图集4 -->
+        <!-- 插件区分隔：把"天气 / 资讯"这一排与顶端四个元素隔开。
+             第三排（海蜇 / 图集）沿用同一屏内的连续布局，不再插分隔。 -->
+        <SectionDivider class="h-plugin-split" />
+
+        <!-- 区块标题：中英同一行，英文靠左、中文靠右（与下方 Gallery 区块一致） -->
+        <div class="h-plugin-head">
+          <h2 class="section-title">Weather &amp; News</h2>
+          <div class="section-label">天气 &amp; 资讯</div>
+        </div>
+
+        <!-- 第二排：天气（左宽） | 今日资讯（右窄·双栏） -->
+        <div class="h-plugin-row">
+          <div class="h-pl-weather"><WeatherCard /></div>
+          <div class="h-pl-news"><NewsCard /></div>
+        </div>
+
+        <!-- 第三排：海蜇音乐 2 : 图集 4 -->
         <div class="h-body">
           <div class="h-haizhe-col">
             <div class="hh-card">
@@ -95,8 +111,11 @@
 
       <!-- ==================== 2. Gallery — 直接展示在主页面 ==================== -->
       <section id="gallery" class="section section-compact">
-        <div class="section-label">图集收藏</div>
-        <h2 class="section-title">Gallery</h2>
+        <!-- 区块标题原来中英各占一行，现在并成一行：英文靠左、中文靠右 -->
+        <div class="sec-head">
+          <h2 class="section-title">Gallery</h2>
+          <div class="section-label">图集收藏</div>
+        </div>
         <ImageGallery />
       </section>
 
@@ -139,6 +158,10 @@
               <span v-for="t in proj.tech.slice(0, 4)" :key="t">{{ t }}</span>
               <span v-if="proj.tech.length > 4" class="tech-more">+{{ proj.tech.length - 4 }}</span>
             </div>
+            <a v-if="proj.link" class="project-card-link" :href="proj.link" target="_blank" rel="noopener">
+              在线体验
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
+            </a>
           </div>
           <a href="https://github.com/Nanxingod" target="_blank" class="project-card glass-card reveal more-card" style="transition-delay: 0.16s">
             <div class="more-dots"><span></span><span></span><span></span></div>
@@ -233,6 +256,8 @@ import SearchBar from './components/SearchBar.vue'
 import CustomCursor from './components/CustomCursor.vue'
 import SectionDivider from './components/SectionDivider.vue'
 import ParticleArt from './components/ParticleArt.vue'
+import WeatherCard from './components/WeatherCard.vue'
+import NewsCard from './components/NewsCard.vue'
 
 const scrolled = ref(false)
 const activeSection = ref('hero')
@@ -262,6 +287,13 @@ const toolSkills = [
 ]
 
 const otherProjects = [
+  {
+    name: '云栖墅 · Villa Sereno',
+    icon: '🏡',
+    desc: '支持第一人称漫游的前端 3D 交互沙盘：别墅、庭院、山水、空岛；别墅内饰精致设计，含天窗厅、星空客卧；配套昼夜 / 天气 / 季节系统。',
+    tech: ['three.js', 'WebGL2', 'Canvas 2D', 'PMREM', '程序化贴图', 'PBR'],
+    link: 'https://deepdemos.top/demo/demo-25b46a12',
+  },
   {
     name: '社交媒体信息挖掘与生成系统',
     icon: '🔬',

@@ -221,11 +221,82 @@ img {
   gap: 24px;
   width: 100%;
   padding: 0 32px;
-  margin-bottom: 36px;
+  /* 26px 是留给下面那条分隔线的呼吸：它要"隔离"顶栏与插件区，
+     上下都得有空气才读得出来（原先 18px 太贴，星标会跟顶栏糊在一起） */
+  margin-bottom: 26px;
   position: relative;
   z-index: 5;
 }
 .h-cell { min-width: 0; }
+
+/* === 第二排：天气（左宽） + 今日资讯（右窄·双栏） ===
+   这张排是"插件排"，两张卡都撑满行高：天气卡内部用 space-between
+   分配富余高度，资讯卡内部滚动，所以行高与内容条数解耦。 */
+
+/* 插件区上方的分隔线与标题：与顶端四个元素隔开，但第三排沿用同一屏的连续布局。
+   ⚠️ 不要在这里改 padding —— SectionDivider 是子组件，它的 scoped 规则
+   `.sec-divider[data-v-x] { padding: 6px 28px }` 优先级 (0,2,0) 高于全局的
+   `.h-plugin-split` (0,1,0)，写 padding 会被盖掉。想调间距只能用 margin。 */
+.h-plugin-split {
+  margin-bottom: 2px;
+}
+.h-plugin-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0 32px;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 4;
+}
+/* 标题与中文标签各自原有的 margin-bottom 在这里归零，让它们真正落在同一行的基线上 */
+.h-plugin-head .section-title,
+.h-plugin-head .section-label {
+  margin-bottom: 0;
+}
+/* margin-left:auto 是对 flex-wrap 的保险：两个元素挤不进一行时中文会掉到第二行，
+   此时只靠 justify-content:space-between 它会贴在左边；有 auto margin 才仍然靠右。 */
+.h-plugin-head .section-label {
+  margin-left: auto;
+}
+
+.h-plugin-row {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  width: 100%;
+  padding: 0 32px;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 4;
+}
+/* 资讯改成双栏后需要更多宽度，所以两卡基本对分：天气略窄但仍够放下曲线与 7 天 */
+.h-pl-weather { flex: 1.2; min-width: 0; }
+.h-pl-news { flex: 1.3; min-width: 0; }
+
+/* 桌面端两卡严格等高：高度锁定后，资讯条数再多也只在卡内滚动，不会把整排撑高。
+   510 这个值不是拍脑袋——两卡"自然内容高度"实测为 天气 481 / 资讯主体 431，
+   行高取 510 时天气还剩 27px 由 space-between 摊成区块间距、资讯剩 23px 由尾注吃掉，
+   两张卡都不滚动。改卡内留白后要重新量一遍（scripts/verify-layout.cjs 会打印自然高）。 */
+@media (min-width: 1025px) {
+  .h-plugin-row { height: 510px; }
+}
+
+@media (max-width: 1024px) {
+  .h-plugin-head { padding: 0 20px; }
+  .h-plugin-row { flex-direction: column; padding: 0 20px; height: auto; }
+  .h-pl-weather, .h-pl-news { flex: none; width: 100%; }
+}
+
+/* 窄屏：中英并排时"Weather & News"很占宽，收一点字号与间距才塞得进一行 */
+@media (max-width: 640px) {
+  .h-plugin-head { gap: 8px; }
+  .h-plugin-head .section-title { font-size: 20px; }
+  .sec-head .section-title { font-size: 20px; }
+}
 .h-mp { flex-shrink: 0; }
 .h-mid { flex-shrink: 0; }
 .h-sch { flex-shrink: 0; display: flex; align-items: center; width: 320px; transform: translateY(-14px); }
@@ -274,26 +345,11 @@ img {
   }
 }
 
-/* Tiny MiniPlayer — inline, fills its cell */
-.h-player-tiny {
-  width: 100% !important;
-  max-width: 300px !important;
-  padding: 8px 10px !important;
-  gap: 4px !important;
-  border-radius: 10px !important;
-}
-.h-player-tiny .mp-header { gap: 4px !important; }
-.h-player-tiny .mp-art { width: 36px !important; height: 36px !important; border-radius: 50% !important; }
-.h-player-tiny .mp-art-img {}
-.h-player-tiny .mp-title { font-size: 10px !important; }
-.h-player-tiny .mp-artist { font-size: 9px !important; }
-.h-player-tiny .mp-label { font-size: 8px !important; letter-spacing: 1px !important; }
-.h-player-tiny .mp-btn { width: 24px !important; height: 24px !important; }
-.h-player-tiny .mp-btn-play { width: 28px !important; height: 28px !important; }
-.h-player-tiny .mp-track-num { font-size: 8px !important; }
-.h-player-tiny .mp-controls { gap: 8px !important; }
-.h-player-tiny .mp-playlist { display: none !important; }
-.h-player-tiny .mp-progress { display: none !important; }
+/* Tiny MiniPlayer — 顶栏里那一份。
+   组件本身已经按紧凑尺寸设计（272px / 单行控制），这里不再用一堆 !important 去掰它；
+   之前的版本在这里把 .mp-playlist / .mp-progress 直接 display:none，
+   结果顶栏播放器既没有进度条也没有列表，看起来像半成品——现在列表收进折叠面板，
+   进度条常驻，所以这两条 display:none 一并删除。 */
 
 /* === Title Block === */
 .h-name {
@@ -534,6 +590,26 @@ img {
   margin-bottom: 28px;
   color: var(--text);
   letter-spacing: -0.5px;
+}
+
+/* 区块标题并成一行：英文（大标题）靠左、中文（小标签）靠右。
+   字号字体完全沿用 .section-title / .section-label 本身，这里只负责排版与行内间距，
+   并把两者原有的 margin-bottom 归零，避免留出多余的空行。 */
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.sec-head .section-title,
+.sec-head .section-label {
+  margin-bottom: 0;
+}
+/* 同上：包一层 flex-wrap 后，落到第二行的中文仍要靠右 */
+.sec-head .section-label {
+  margin-left: auto;
 }
 
 /* ============================================
@@ -1367,7 +1443,7 @@ img {
   }
   .h-mp, .h-clk, .h-mid, .h-sch { flex: none; width: 100%; }
   .h-title-inline { max-width: 100%; }
-  .h-player-tiny { width: 100% !important; max-width: 280px !important; }
+  .h-player-tiny { width: 100% !important; max-width: 280px !important; margin: 0 auto !important; }
   .h-cta { justify-content: center; }
   .h-name { font-size: clamp(20px, 8vw, 30px); }
   .h-body {
