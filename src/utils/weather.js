@@ -14,6 +14,7 @@ import {
   uvLevel, suggestClothing, clothingEmoji, aqiLevel,
 } from '../../shared/weather.js'
 import { fetchApiJson } from './api.js'
+import { HOT_CITIES } from './cities.js'
 
 export { uvLevel, suggestClothing, clothingEmoji, aqiLevel }
 
@@ -34,18 +35,6 @@ export function pickWeatherBg(scene) {
   const base = (scene || '').replace(/-night$/, '')
   return WEATHER_BG[base] || WEATHER_BG.overcast
 }
-
-/* ---------- 常用城市 ---------- */
-export const CITIES = [
-  { name: '深圳', lat: 22.5431, lon: 114.0579 },
-  { name: '北京', lat: 39.9042, lon: 116.4074 },
-  { name: '上海', lat: 31.2304, lon: 121.4737 },
-  { name: '广州', lat: 23.1291, lon: 113.2644 },
-  { name: '杭州', lat: 30.2741, lon: 120.1551 },
-  { name: '成都', lat: 30.5728, lon: 104.0668 },
-  { name: '武汉', lat: 30.5928, lon: 114.3055 },
-  { name: '西安', lat: 34.3416, lon: 108.9398 },
-]
 
 /* ---------- 缓存（30 分钟 TTL，按经纬度区分，跨刷新有效） ---------- */
 const CACHE_KEY = 'nx.wxCache'
@@ -127,12 +116,15 @@ export async function fetchWeather(lat, lon, { force = false } = {}) {
 /* ---------- 城市持久化 ---------- */
 const CITY_KEY = 'nx.wxCity'
 
+// 默认城市（深圳，沿用项目原有默认值）；城市库异常时的最后兜底
+const DEFAULT_CITY = { name: '深圳', lat: 22.5431, lon: 114.0579, admin1: '广东', country: '中国' }
+
 export function loadCity() {
   try {
     const saved = JSON.parse(localStorage.getItem(CITY_KEY) || 'null')
-    if (saved && saved.name) return saved
+    if (saved && saved.name && Number.isFinite(saved.lat) && Number.isFinite(saved.lon)) return saved
   } catch (e) { /* noop */ }
-  return CITIES[0]
+  return HOT_CITIES.find(c => c.name === '深圳') || HOT_CITIES[0] || DEFAULT_CITY
 }
 
 export function saveCity(city) {

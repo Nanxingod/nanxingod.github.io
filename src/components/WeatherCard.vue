@@ -7,8 +7,8 @@
     <div class="wc-inner">
       <!-- 顶部：城市 + 日期 + 刷新 -->
       <header class="wc-head">
-        <div class="wc-city-wrap">
-          <button class="wc-city" @click.stop="pickerOpen = !pickerOpen">
+        <div class="wc-city-wrap" ref="cityWrapEl">
+          <button class="wc-city" @click.stop="togglePicker">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
@@ -18,8 +18,66 @@
             </svg>
           </button>
           <transition name="pop">
-            <div v-if="pickerOpen" class="wc-menu">
-              <button v-for="c in CITIES" :key="c.name" :class="{ on: c.name === city.name }" @click.stop="selectCity(c)">{{ c.name }}</button>
+            <div v-if="pickerOpen" class="wc-menu" @click.stop>
+              <!-- 搜索框 -->
+              <div class="wc-search">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+                </svg>
+                <input
+                  ref="searchEl"
+                  v-model="kw"
+                  type="text"
+                  placeholder="搜城市 / 拼音 / 首字母"
+                  @input="onSearchInput"
+                  @keydown.down.prevent="moveCursor(1)"
+                  @keydown.up.prevent="moveCursor(-1)"
+                  @keydown.enter.prevent="pickCursor"
+                  @keydown.esc.prevent="closePicker"
+                >
+                <button v-if="kw" class="wc-clear" @click="clearSearch" title="清空">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="wc-list" ref="listEl">
+                <!-- 没输入：常用城市 + 最近使用 -->
+                <template v-if="!kw.trim()">
+                  <div v-if="recent.length" class="wc-group">
+                    <div class="wc-group-t">最近使用</div>
+                    <div class="wc-chips">
+                      <button v-for="c in recent" :key="'r-' + c.name + c.admin1"
+                              :class="{ on: isCurrent(c) }" @click="selectCity(c)">{{ c.name }}</button>
+                    </div>
+                  </div>
+                  <div class="wc-group">
+                    <div class="wc-group-t">常用城市</div>
+                    <div class="wc-chips">
+                      <button v-for="c in HOT_CITIES" :key="'h-' + c.name"
+                              :class="{ on: isCurrent(c) }" @click="selectCity(c)">{{ c.name }}</button>
+                    </div>
+                  </div>
+                  <div class="wc-hint">输入城市名搜索，支持拼音与首字母（如 hz）</div>
+                </template>
+
+                <!-- 有输入：结果列表 -->
+                <template v-else>
+                  <div v-if="searching && !results.length" class="wc-empty">搜索中…</div>
+                  <div v-else-if="!results.length" class="wc-empty">没找到「{{ kw.trim() }}」，换个词试试</div>
+                  <template v-else>
+                    <button v-for="(c, i) in results" :key="c.name + c.admin1"
+                            class="wc-item" :class="{ on: isCurrent(c), cursor: i === cursor }"
+                            @click="selectCity(c)" @mouseenter="cursor = i">
+                      <span class="wc-item-n">{{ c.name }}</span>
+                      <span class="wc-item-s">{{ subLabel(c) }}</span>
+                      <span v-if="c.source === 'remote'" class="wc-item-tag">网络</span>
+                    </button>
+                    <div v-if="searching" class="wc-empty wc-more">补充网络结果中…</div>
+                  </template>
+                </template>
+              </div>
             </div>
           </transition>
         </div>
@@ -148,11 +206,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
-  fetchWeather, pickWeatherBg, CITIES, loadCity, saveCity,
+  fetchWeather, pickWeatherBg, loadCity, saveCity,
   suggestClothing, clothingEmoji, uvLevel,
 } from '../utils/weather.js'
+import { HOT_CITIES } from '../utils/cities.js'
+import { localSearch, searchRemote, merge, loadRecent, saveRecent } from '../utils/geocode.js'
 
 // 曲线坐标系：宽 1200 只是为了让 x 有个整数刻度，渲染时会被横向拉伸到卡片宽度；
 // 高 100 与 CSS 里的 chart 高度互相独立（preserveAspectRatio="none"）。
@@ -168,6 +228,117 @@ const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
 const pickerOpen = ref(false)
+
+/* ---------- 城市搜索面板 ---------- */
+const kw = ref('')
+const results = ref([])
+const searching = ref(false)
+const cursor = ref(-1)
+const recent = ref(loadRecent())
+const searchEl = ref(null)
+const listEl = ref(null)
+const cityWrapEl = ref(null)
+
+let searchTimer = null
+let searchSeq = 0        // 请求序号：只接受最新一次输入的结果，避免慢响应覆盖新结果
+
+const DEBOUNCE_MS = 220
+
+function isCurrent(c) {
+  return c.name === city.value.name && (c.admin1 || '') === (city.value.admin1 || '')
+}
+
+/** 副标题：省 · 国家。同名城市靠这个区分（如"巴黎·法兰西岛·法国"） */
+function subLabel(c) {
+  const parts = []
+  if (c.admin1 && c.admin1 !== c.name) parts.push(c.admin1)
+  if (c.country) parts.push(c.country)
+  return parts.join(' · ')
+}
+
+function onSearchInput() {
+  cursor.value = -1
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(runSearch, DEBOUNCE_MS)
+}
+
+/**
+ * 两段式搜索：
+ *   第一段（同步）：本地库立刻出结果 —— 敲下第一个字就能看到，不等网络。
+ *   第二段（异步）：本地不足 5 条时才问接口，回来后合并追加。
+ * 这样常用城市是毫秒级的，冷门城市也不会搜不到。
+ */
+async function runSearch() {
+  const q = kw.value.trim()
+  if (!q) {
+    results.value = []
+    searching.value = false
+    return
+  }
+
+  const seq = ++searchSeq
+  const limit = 12
+
+  // ---- 第一段：本地立即渲染 ----
+  const local = localSearch(q, limit)
+  results.value = local
+  cursor.value = local.length ? 0 : -1
+
+  // 本地答案已经足够，就不打扰服务端
+  if (local.length >= 5) {
+    searching.value = false
+    return
+  }
+
+  // ---- 第二段：接口补充 ----
+  searching.value = true
+  const remote = await searchRemote(q, limit)
+  // 过期结果直接丢弃：用户已经改了输入，旧结果不该再覆盖
+  if (seq !== searchSeq) return
+  results.value = merge(local, remote, limit)
+  searching.value = false
+  if (cursor.value < 0 && results.value.length) cursor.value = 0
+}
+
+function clearSearch() {
+  kw.value = ''
+  results.value = []
+  cursor.value = -1
+  clearTimeout(searchTimer)
+  nextTick(() => searchEl.value?.focus())
+}
+
+function moveCursor(d) {
+  const n = results.value.length
+  if (!n) return
+  cursor.value = (cursor.value + d + n) % n
+  // 让键盘选中的行始终可见
+  nextTick(() => {
+    const el = listEl.value?.children?.[cursor.value]
+    el?.scrollIntoView({ block: 'nearest' })
+  })
+}
+
+function pickCursor() {
+  const c = results.value[cursor.value]
+  if (c) selectCity(c)
+}
+
+async function togglePicker() {
+  pickerOpen.value = !pickerOpen.value
+  if (!pickerOpen.value) return
+  kw.value = ''
+  results.value = []
+  cursor.value = -1
+  recent.value = loadRecent()
+  await nextTick()
+  searchEl.value?.focus()
+}
+
+function closePicker() {
+  pickerOpen.value = false
+  clearTimeout(searchTimer)
+}
 
 const bg = computed(() => weather.value?.scene ? pickWeatherBg(weather.value.scene) : '')
 const uvText = computed(() => uvLevel(weather.value?.uv))
@@ -295,14 +466,20 @@ async function load(force = false) {
 function selectCity(c) {
   city.value = c
   saveCity(c)
-  pickerOpen.value = false
+  saveRecent(c)
+  recent.value = loadRecent()
+  closePicker()
   weather.value = null
   loading.value = true
   hoverIdx.value = null
   load(false)
 }
 
-function onDocClick() { pickerOpen.value = false }
+// 点击面板外部才关闭；面板内部有 @click.stop，不会冒泡到这里
+function onDocClick(e) {
+  if (cityWrapEl.value?.contains(e.target)) return
+  pickerOpen.value = false
+}
 
 onMounted(() => {
   load(false)
@@ -312,6 +489,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick)
   window.removeEventListener('resize', onResize)
+  clearTimeout(searchTimer)
 })
 </script>
 
@@ -400,9 +578,8 @@ onUnmounted(() => {
   top: calc(100% + 7px);
   left: 0;
   z-index: 30;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  width: 268px;
+  max-width: calc(100vw - 32px);
   padding: 7px;
   border-radius: 12px;
   background: rgba(18, 18, 32, 0.94);
@@ -410,19 +587,143 @@ onUnmounted(() => {
   backdrop-filter: blur(18px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
-.wc-menu button {
-  padding: 5px 9px;
+
+/* ---- 搜索框 ---- */
+.wc-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+.wc-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+}
+.wc-search input::placeholder { color: rgba(255, 255, 255, 0.38); }
+.wc-clear {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.wc-clear:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* ---- 结果区 ---- */
+.wc-list {
+  margin-top: 6px;
+  max-height: 268px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.wc-list::-webkit-scrollbar { width: 5px; }
+.wc-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+
+.wc-group + .wc-group { margin-top: 8px; }
+.wc-group-t {
+  padding: 3px 6px 5px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.4px;
+}
+/* 城市标签网格。
+   注意：类名不能叫 wc-grid —— 曲线图里已经有一个 <line class="wc-grid">（网格虚线），
+   撞名会让两边的样式互相污染。 */
+.wc-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.wc-chips button {
+  padding: 5px 4px;
   border-radius: 7px;
   border: none;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: all 0.18s ease;
 }
-.wc-menu button:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
-.wc-menu button.on { background: rgba(99, 102, 241, 0.28); color: #fff; }
+.wc-chips button:hover { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+.wc-chips button.on { background: rgba(99, 102, 241, 0.3); color: #fff; }
+
+/* ---- 搜索结果行 ---- */
+.wc-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.wc-item:hover,
+.wc-item.cursor { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+.wc-item.on { background: rgba(99, 102, 241, 0.26); color: #fff; }
+.wc-item-n { font-size: 13px; font-weight: 500; flex-shrink: 0; }
+.wc-item-s {
+  flex: 1;
+  min-width: 0;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.42);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wc-item.on .wc-item-s { color: rgba(255, 255, 255, 0.66); }
+.wc-item-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.wc-empty {
+  padding: 14px 8px;
+  text-align: center;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.wc-more { padding: 6px 8px; font-size: 10.5px; }
+.wc-hint {
+  padding: 8px 6px 3px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.34);
+  line-height: 1.5;
+}
+
+/* 窄屏：面板贴左，避免超出卡片右边界 */
+@media (max-width: 640px) {
+  .wc-menu { width: 240px; }
+  .wc-chips { grid-template-columns: repeat(3, 1fr); }
+}
 
 .wc-head-right { display: flex; align-items: center; gap: 9px; }
 .wc-date { font-size: 11.5px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.3px; }
